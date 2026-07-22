@@ -1,7 +1,7 @@
 package exolex.exotic.exception;
 
 public class ClienteNotFoundException extends RuntimeException {
-  public ClienteNotFoundException(String message) {
-    super(message);
-  }
+    public ClienteNotFoundException(Long id) {
+        super("Cliente não encontrado com id: " + id);
+    }
 }

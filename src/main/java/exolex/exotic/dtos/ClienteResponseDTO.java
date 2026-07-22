@@ -1,4 +1,9 @@
 package exolex.exotic.dtos;
 
-public class ClienteResponseDTO {
-}
+public record ClienteResponseDTO(
+        Long id,
+        String nome,
+        String documento,
+        String email,
+        String telefone
+) {}
