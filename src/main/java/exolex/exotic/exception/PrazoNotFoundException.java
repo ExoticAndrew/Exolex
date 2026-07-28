@@ -1,7 +1,7 @@
 package exolex.exotic.exception;
 
 public class PrazoNotFoundException extends RuntimeException {
-  public PrazoNotFoundException(String message) {
-    super(message);
-  }
+    public PrazoNotFoundException(Long id) {
+        super("Prazo não encontrado com id: " + id);
+    }
 }

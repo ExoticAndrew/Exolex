@@ -1,7 +1,11 @@
 package exolex.exotic.exception;
 
-public class ErroResponse extends RuntimeException {
-  public ErroResponse(String message) {
-    super(message);
-  }
-}
+import java.time.LocalDateTime;
+
+public record ErroResponse(
+        LocalDateTime timestamp,
+        int status,
+        String error,
+        String message,
+        String path
+) {}
