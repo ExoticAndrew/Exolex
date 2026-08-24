@@ -45,6 +45,7 @@ public class PrazoService {
         Processo processo = processoRepository.findById(processoId)
                 .orElseThrow(() -> new ProcessoNotFoundException(processoId));
 
+        Usuario usuarioAtual = getUsuarioAutenticado();
         verificarAcessoEdicao(processoId);
 
         Prazo prazo = new Prazo();
@@ -54,7 +55,13 @@ public class PrazoService {
         prazoRepository.save(prazo);
 
         prazoEventProducer.publicarPrazoCriado(new PrazoCriadoEvent(
-                prazo.getId(), processo.getId(), prazo.getDescricao(), prazo.getDataVencimento()
+                prazo.getId(),
+                processo.getId(),
+                processo.getNumero(),
+                prazo.getDescricao(),
+                prazo.getDataVencimento(),
+                usuarioAtual.getId(),
+                usuarioAtual.getNome()
         ));
 
         return prazoMapper.toResponseDTO(prazo);

@@ -15,5 +15,7 @@ public interface ProcessoUsuarioRepository extends JpaRepository<ProcessoUsuario
 
     List<ProcessoUsuario> findByProcesso(Processo processo);
 
+    List<ProcessoUsuario> findByProcessoId(Long processoId);
+
     boolean existsByProcessoIdAndUsuarioId(Long processoId, Long usuarioId);
 }
