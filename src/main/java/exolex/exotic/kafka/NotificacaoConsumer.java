@@ -10,6 +10,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -30,30 +31,63 @@ public class NotificacaoConsumer {
     }
 
     @KafkaListener(topics = "prazo-criado", groupId = "notificacao-group")
-    public void escutar(String payload) {
+    public void escutarCriacao(String payload) {
         try {
             PrazoCriadoEvent evento = jsonMapper.readValue(payload, PrazoCriadoEvent.class);
-            List<ProcessoUsuario> equipe = processoUsuarioRepository.findByProcessoId(evento.processoId());
-
             String mensagem = evento.criadoPorNome() + " criou o prazo \"" + evento.descricao()
                     + "\" no processo " + evento.processoNumero();
 
-            int notificados = 0;
-            for (ProcessoUsuario vinculo : equipe) {
-                if (vinculo.getUsuario().getId().equals(evento.criadoPorId())) {
-                    continue;
-                }
+            notificarEquipe(evento.processoId(), evento.criadoPorId(), mensagem);
+        } catch (Exception e) {
+            logger.error("Erro ao processar evento de criação de prazo: {}", e.getMessage(), e);
+        }
+    }
 
-                Notificacao notificacao = new Notificacao();
-                notificacao.setUsuario(vinculo.getUsuario());
-                notificacao.setMensagem(mensagem);
-                notificacaoRepository.save(notificacao);
-                notificados++;
+    @KafkaListener(topics = "prazo-atualizado", groupId = "notificacao-group")
+    public void escutarAtualizacao(String payload) {
+        try {
+            PrazoAtualizadoEvent evento = jsonMapper.readValue(payload, PrazoAtualizadoEvent.class);
+            String mensagem = montarMensagemAtualizacao(evento);
+
+            notificarEquipe(evento.processoId(), evento.alteradoPorId(), mensagem);
+        } catch (Exception e) {
+            logger.error("Erro ao processar evento de atualização de prazo: {}", e.getMessage(), e);
+        }
+    }
+
+    private void notificarEquipe(Long processoId, Long autorId, String mensagem) {
+        List<ProcessoUsuario> equipe = processoUsuarioRepository.findByProcessoId(processoId);
+
+        int notificados = 0;
+        for (ProcessoUsuario vinculo : equipe) {
+            if (vinculo.getUsuario().getId().equals(autorId)) {
+                continue;
             }
 
-            logger.info("Notificações criadas para o prazo {}: {} usuário(s)", evento.prazoId(), notificados);
-        } catch (Exception e) {
-            logger.error("Erro ao processar evento de notificação: {}", e.getMessage(), e);
+            Notificacao notificacao = new Notificacao();
+            notificacao.setUsuario(vinculo.getUsuario());
+            notificacao.setMensagem(mensagem);
+            notificacaoRepository.save(notificacao);
+            notificados++;
         }
+
+        logger.info("Notificações criadas: {} usuário(s) — \"{}\"", notificados, mensagem);
+    }
+
+    private String montarMensagemAtualizacao(PrazoAtualizadoEvent evento) {
+        List<String> partes = new ArrayList<>();
+
+        if (evento.camposAlterados().contains("status")) {
+            partes.add("status alterado para " + evento.statusAtual());
+        }
+        if (evento.camposAlterados().contains("dataVencimento")) {
+            partes.add("nova data de vencimento em " + evento.dataVencimentoAtual());
+        }
+        if (evento.camposAlterados().contains("descricao")) {
+            partes.add("descrição atualizada");
+        }
+
+        return evento.alteradoPorNome() + " atualizou o prazo \"" + evento.descricaoAtual()
+                + "\" no processo " + evento.processoNumero() + ": " + String.join("; ", partes);
     }
 }

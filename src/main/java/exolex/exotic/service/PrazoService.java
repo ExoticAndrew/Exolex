@@ -4,9 +4,11 @@ import exolex.exotic.dtos.AtualizarStatusPrazoDTO;
 import exolex.exotic.dtos.PrazoRequestDTO;
 import exolex.exotic.dtos.PrazoResponseDTO;
 import exolex.exotic.enums.PapelProcesso;
+import exolex.exotic.enums.StatusPrazo;
 import exolex.exotic.exception.AcessoNegadoException;
 import exolex.exotic.exception.PrazoNotFoundException;
 import exolex.exotic.exception.ProcessoNotFoundException;
+import exolex.exotic.kafka.PrazoAtualizadoEvent;
 import exolex.exotic.kafka.PrazoCriadoEvent;
 import exolex.exotic.kafka.PrazoEventProducer;
 import exolex.exotic.map.PrazoMapper;
@@ -23,6 +25,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -73,17 +79,64 @@ public class PrazoService {
                 .map(prazoMapper::toResponseDTO);
     }
 
+    public PrazoResponseDTO atualizar(Long processoId, Long prazoId, PrazoRequestDTO dto) {
+        verificarAcessoEdicao(processoId);
+        Prazo prazo = buscarPrazoDoProcesso(processoId, prazoId);
+        Usuario usuarioAtual = getUsuarioAutenticado();
+
+        List<String> camposAlterados = new ArrayList<>();
+        if (!Objects.equals(prazo.getDescricao(), dto.descricao())) {
+            camposAlterados.add("descricao");
+        }
+        if (!Objects.equals(prazo.getDataVencimento(), dto.dataVencimento())) {
+            camposAlterados.add("dataVencimento");
+        }
+
+        prazo.setDescricao(dto.descricao());
+        prazo.setDataVencimento(dto.dataVencimento());
+        prazoRepository.save(prazo);
+
+        if (!camposAlterados.isEmpty()) {
+            publicarAtualizacao(prazo, camposAlterados, usuarioAtual);
+        }
+
+        return prazoMapper.toResponseDTO(prazo);
+    }
+
     public PrazoResponseDTO atualizarStatus(Long processoId, Long prazoId, AtualizarStatusPrazoDTO dto) {
         verificarAcessoEdicao(processoId);
         Prazo prazo = buscarPrazoDoProcesso(processoId, prazoId);
-        prazo.setStatus(dto.status());
-        return prazoMapper.toResponseDTO(prazoRepository.save(prazo));
+        Usuario usuarioAtual = getUsuarioAutenticado();
+
+        StatusPrazo statusAntigo = prazo.getStatus();
+
+        if (!Objects.equals(statusAntigo, dto.status())) {
+            prazo.setStatus(dto.status());
+            prazoRepository.save(prazo);
+            publicarAtualizacao(prazo, List.of("status"), usuarioAtual);
+        }
+
+        return prazoMapper.toResponseDTO(prazo);
     }
 
     public void deletar(Long processoId, Long prazoId) {
         verificarAcessoEdicao(processoId);
         Prazo prazo = buscarPrazoDoProcesso(processoId, prazoId);
         prazoRepository.delete(prazo);
+    }
+
+    private void publicarAtualizacao(Prazo prazo, List<String> camposAlterados, Usuario usuarioAtual) {
+        prazoEventProducer.publicarPrazoAtualizado(new PrazoAtualizadoEvent(
+                prazo.getId(),
+                prazo.getProcesso().getId(),
+                prazo.getProcesso().getNumero(),
+                camposAlterados,
+                prazo.getDescricao(),
+                prazo.getDataVencimento(),
+                prazo.getStatus(),
+                usuarioAtual.getId(),
+                usuarioAtual.getNome()
+        ));
     }
 
     private Prazo buscarPrazoDoProcesso(Long processoId, Long prazoId) {
@@ -93,6 +146,7 @@ public class PrazoService {
         if (!prazo.getProcesso().getId().equals(processoId)) {
             throw new PrazoNotFoundException(prazoId);
         }
+
         return prazo;
     }
 

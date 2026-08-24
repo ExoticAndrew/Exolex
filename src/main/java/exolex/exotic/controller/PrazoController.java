@@ -33,6 +33,13 @@ public class PrazoController {
         return ResponseEntity.ok(prazoService.listar(processoId, pageable));
     }
 
+    @PutMapping("/{prazoId}")
+    public ResponseEntity<PrazoResponseDTO> atualizar(
+            @PathVariable Long processoId, @PathVariable Long prazoId,
+            @Valid @RequestBody PrazoRequestDTO dto) {
+        return ResponseEntity.ok(prazoService.atualizar(processoId, prazoId, dto));
+    }
+
     @PatchMapping("/{prazoId}/status")
     public ResponseEntity<PrazoResponseDTO> atualizarStatus(
             @PathVariable Long processoId, @PathVariable Long prazoId,
