@@ -7,6 +7,9 @@ import exolex.exotic.enums.PapelProcesso;
 import exolex.exotic.exception.AcessoNegadoException;
 import exolex.exotic.exception.ClienteNotFoundException;
 import exolex.exotic.exception.ProcessoNotFoundException;
+import exolex.exotic.exception.UsuarioNotFoundException;
+import exolex.exotic.kafka.ColaboradorAdicionadoEvent;
+import exolex.exotic.kafka.ProcessoEventProducer;
 import exolex.exotic.map.ProcessoMapper;
 import exolex.exotic.model.Cliente;
 import exolex.exotic.model.Processo;
@@ -31,11 +34,12 @@ public class ProcessoService {
     private final ClienteRepository clienteRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProcessoMapper processoMapper;
+    private final ProcessoEventProducer processoEventProducer;
 
     private Usuario getUsuarioAutenticado() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new UsuarioNotFoundException("Usuário autenticado não encontrado"));
     }
 
     public ProcessoResponseDTO criar(ProcessoRequestDTO dto) {
@@ -72,6 +76,7 @@ public class ProcessoService {
         Processo processo = processoRepository.findById(processoId)
                 .orElseThrow(() -> new ProcessoNotFoundException(processoId));
 
+        Usuario usuarioAtual = getUsuarioAutenticado();
         exigirPapel(processoId, PapelProcesso.RESPONSAVEL,
                 "Apenas o responsável pelo processo pode adicionar colaboradores");
 
@@ -80,13 +85,21 @@ public class ProcessoService {
         }
 
         Usuario usuario = usuarioRepository.findById(dto.usuarioId())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new UsuarioNotFoundException(dto.usuarioId()));
 
         ProcessoUsuario vinculo = new ProcessoUsuario();
         vinculo.setProcesso(processo);
         vinculo.setUsuario(usuario);
         vinculo.setPapel(dto.papel());
         processoUsuarioRepository.save(vinculo);
+
+        processoEventProducer.publicarColaboradorAdicionado(new ColaboradorAdicionadoEvent(
+                processo.getId(),
+                processo.getNumero(),
+                usuario.getId(),
+                dto.papel(),
+                usuarioAtual.getNome()
+        ));
     }
 
     public void deletar(Long id) {
