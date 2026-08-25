@@ -36,5 +36,5 @@ server:
   port: 8080
 
 jwt:
-  secret: uma-chave-secreta-bem-longa-e-aleatoria-troque-depois-1234567890
+  secret: ${JWT_SECRET}
   expiration: 86400000

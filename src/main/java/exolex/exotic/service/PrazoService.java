@@ -8,6 +8,7 @@ import exolex.exotic.enums.StatusPrazo;
 import exolex.exotic.exception.AcessoNegadoException;
 import exolex.exotic.exception.PrazoNotFoundException;
 import exolex.exotic.exception.ProcessoNotFoundException;
+import exolex.exotic.exception.UsuarioNotFoundException;
 import exolex.exotic.kafka.PrazoAtualizadoEvent;
 import exolex.exotic.kafka.PrazoCriadoEvent;
 import exolex.exotic.kafka.PrazoEventProducer;
@@ -44,7 +45,7 @@ public class PrazoService {
     private Usuario getUsuarioAutenticado() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new UsuarioNotFoundException("Usuário autenticado não encontrado"));
     }
 
     public PrazoResponseDTO criar(Long processoId, PrazoRequestDTO dto) {
