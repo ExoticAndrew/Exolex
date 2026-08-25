@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
-
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
@@ -94,5 +94,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErroResponse> handlerPrazoNotFound(
             PrazoNotFoundException ex, WebRequest request) {
         return construirResposta(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request);
+    }
+    @ExceptionHandler(UsuarioNotFoundException.class)
+    public ResponseEntity<ErroResponse> handlerUsuarioNotFound(
+            UsuarioNotFoundException ex, WebRequest request) {
+        return construirResposta(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(NotificacaoNotFoundException.class)
+    public ResponseEntity<ErroResponse> handlerNotificacaoNotFound(
+            NotificacaoNotFoundException ex, WebRequest request) {
+        return construirResposta(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request);
+    }
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErroResponse> handlerTipoInvalido(
+            MethodArgumentTypeMismatchException ex, WebRequest request) {
+        String mensagem = "Parâmetro '" + ex.getName() + "' possui formato inválido";
+        return construirResposta(HttpStatus.BAD_REQUEST, "Bad Request", mensagem, request);
     }
 }

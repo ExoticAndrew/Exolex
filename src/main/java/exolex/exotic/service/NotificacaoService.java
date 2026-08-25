@@ -1,6 +1,9 @@
 package exolex.exotic.service;
 
 import exolex.exotic.dtos.NotificacaoResponseDTO;
+import exolex.exotic.exception.AcessoNegadoException;
+import exolex.exotic.exception.NotificacaoNotFoundException;
+import exolex.exotic.exception.UsuarioNotFoundException;
 import exolex.exotic.model.Notificacao;
 import exolex.exotic.model.Usuario;
 import exolex.exotic.repository.NotificacaoRepository;
@@ -21,7 +24,7 @@ public class NotificacaoService {
     private Usuario getUsuarioAutenticado() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(() -> new UsuarioNotFoundException("Usuário autenticado não encontrado"));
     }
 
     public List<NotificacaoResponseDTO> listar() {
@@ -38,10 +41,10 @@ public class NotificacaoService {
         Usuario usuario = getUsuarioAutenticado();
 
         Notificacao notificacao = notificacaoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notificação não encontrada"));
+                .orElseThrow(() -> new NotificacaoNotFoundException(id));
 
         if (!notificacao.getUsuario().getId().equals(usuario.getId())) {
-            throw new RuntimeException("Você não tem permissão para acessar esta notificação");
+            throw new AcessoNegadoException("Você não tem permissão para acessar esta notificação");
         }
 
         notificacao.setLida(true);

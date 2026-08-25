@@ -1,7 +1,7 @@
 package exolex.exotic.exception;
 
 public class NotificacaoNotFoundException extends RuntimeException {
-  public NotificacaoNotFoundException(String message) {
-    super(message);
-  }
+    public NotificacaoNotFoundException(Long id) {
+        super("Notificação não encontrada com id: " + id);
+    }
 }
