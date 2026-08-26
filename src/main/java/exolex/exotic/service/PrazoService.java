@@ -1,6 +1,7 @@
 package exolex.exotic.service;
 
 import exolex.exotic.dtos.AtualizarStatusPrazoDTO;
+import exolex.exotic.dtos.PrazoProximoDTO;
 import exolex.exotic.dtos.PrazoRequestDTO;
 import exolex.exotic.dtos.PrazoResponseDTO;
 import exolex.exotic.enums.StatusPrazo;
@@ -74,6 +75,30 @@ public class PrazoService {
         processoAcessoService.verificarAcessoVisualizacao(processoId, getUsuarioAutenticado());
         return prazoRepository.findByProcessoId(processoId, pageable)
                 .map(prazoMapper::toResponseDTO);
+    }
+
+    public List<PrazoProximoDTO> listarProximos() {
+        Usuario usuario = getUsuarioAutenticado();
+        List<Processo> processosVinculados = processoRepository.findByUsuarioVinculado(usuario);
+
+        if (processosVinculados.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> processoIds = processosVinculados.stream().map(Processo::getId).toList();
+
+        return prazoRepository
+                .findTop10ByProcessoIdInAndStatusNotOrderByDataVencimentoAsc(processoIds, StatusPrazo.CUMPRIDO)
+                .stream()
+                .map(p -> new PrazoProximoDTO(
+                        p.getId(),
+                        p.getDescricao(),
+                        p.getDataVencimento(),
+                        p.getStatus(),
+                        p.getProcesso().getId(),
+                        p.getProcesso().getNumero()
+                ))
+                .toList();
     }
 
     public PrazoResponseDTO atualizar(Long processoId, Long prazoId, PrazoRequestDTO dto) {

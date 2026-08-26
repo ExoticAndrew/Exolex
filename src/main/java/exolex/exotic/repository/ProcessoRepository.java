@@ -9,11 +9,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface ProcessoRepository extends JpaRepository<Processo, Long> {
 
     @Query("SELECT p FROM Processo p JOIN ProcessoUsuario pu ON pu.processo = p WHERE pu.usuario = :usuario")
     Page<Processo> findByUsuarioVinculado(@Param("usuario") Usuario usuario, Pageable pageable);
+
+    @Query("SELECT p FROM Processo p JOIN ProcessoUsuario pu ON pu.processo = p WHERE pu.usuario = :usuario")
+    List<Processo> findByUsuarioVinculado(@Param("usuario") Usuario usuario);
 
     boolean existsByClienteId(Long clienteId);
 }
