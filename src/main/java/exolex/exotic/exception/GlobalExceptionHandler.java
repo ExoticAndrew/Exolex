@@ -112,4 +112,9 @@ public class GlobalExceptionHandler {
         String mensagem = "Parâmetro '" + ex.getName() + "' possui formato inválido";
         return construirResposta(HttpStatus.BAD_REQUEST, "Bad Request", mensagem, request);
     }
+    @ExceptionHandler(ClientePossuiProcessosException.class)
+    public ResponseEntity<ErroResponse> handlerClientePossuiProcessos(
+            ClientePossuiProcessosException ex, WebRequest request) {
+        return construirResposta(HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request);
+    }
 }

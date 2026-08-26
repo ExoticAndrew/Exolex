@@ -14,4 +14,6 @@ public interface ProcessoRepository extends JpaRepository<Processo, Long> {
 
     @Query("SELECT p FROM Processo p JOIN ProcessoUsuario pu ON pu.processo = p WHERE pu.usuario = :usuario")
     Page<Processo> findByUsuarioVinculado(@Param("usuario") Usuario usuario, Pageable pageable);
+
+    boolean existsByClienteId(Long clienteId);
 }
