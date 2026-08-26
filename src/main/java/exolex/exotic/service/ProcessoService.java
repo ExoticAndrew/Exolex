@@ -15,10 +15,7 @@ import exolex.exotic.model.Cliente;
 import exolex.exotic.model.Processo;
 import exolex.exotic.model.ProcessoUsuario;
 import exolex.exotic.model.Usuario;
-import exolex.exotic.repository.ClienteRepository;
-import exolex.exotic.repository.ProcessoRepository;
-import exolex.exotic.repository.ProcessoUsuarioRepository;
-import exolex.exotic.repository.UsuarioRepository;
+import exolex.exotic.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +32,8 @@ public class ProcessoService {
     private final UsuarioRepository usuarioRepository;
     private final ProcessoMapper processoMapper;
     private final ProcessoEventProducer processoEventProducer;
+    private final PrazoRepository prazoRepository;
+    private final ProcessoAcessoService processoAcessoService;
 
     private Usuario getUsuarioAutenticado() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -68,7 +67,12 @@ public class ProcessoService {
     }
 
     public ProcessoResponseDTO buscarPorId(Long id) {
-        Processo processo = buscarProcessoComAcesso(id);
+        Usuario usuario = getUsuarioAutenticado();
+        processoAcessoService.verificarAcessoVisualizacao(id, usuario);
+
+        Processo processo = processoRepository.findById(id)
+                .orElseThrow(() -> new ProcessoNotFoundException(id));
+
         return processoMapper.toResponseDTO(processo, processoUsuarioRepository.findByProcesso(processo));
     }
 
@@ -77,7 +81,7 @@ public class ProcessoService {
                 .orElseThrow(() -> new ProcessoNotFoundException(processoId));
 
         Usuario usuarioAtual = getUsuarioAutenticado();
-        exigirPapel(processoId, PapelProcesso.RESPONSAVEL,
+        processoAcessoService.exigirPapel(processoId, usuarioAtual, PapelProcesso.RESPONSAVEL,
                 "Apenas o responsável pelo processo pode adicionar colaboradores");
 
         if (processoUsuarioRepository.existsByProcessoIdAndUsuarioId(processoId, dto.usuarioId())) {
@@ -103,31 +107,15 @@ public class ProcessoService {
     }
 
     public void deletar(Long id) {
-        exigirPapel(id, PapelProcesso.RESPONSAVEL, "Apenas o responsável pode excluir o processo");
+        Usuario usuario = getUsuarioAutenticado();
+        processoAcessoService.exigirPapel(id, usuario, PapelProcesso.RESPONSAVEL,
+                "Apenas o responsável pode excluir o processo");
+
         Processo processo = processoRepository.findById(id)
                 .orElseThrow(() -> new ProcessoNotFoundException(id));
+
+        prazoRepository.deleteAll(prazoRepository.findByProcessoId(id));
+        processoUsuarioRepository.deleteAll(processoUsuarioRepository.findByProcesso(processo));
         processoRepository.delete(processo);
-    }
-
-    private Processo buscarProcessoComAcesso(Long id) {
-        Processo processo = processoRepository.findById(id)
-                .orElseThrow(() -> new ProcessoNotFoundException(id));
-
-        Usuario usuario = getUsuarioAutenticado();
-        processoUsuarioRepository.findByProcessoIdAndUsuarioId(id, usuario.getId())
-                .orElseThrow(() -> new AcessoNegadoException("Você não tem acesso a este processo"));
-
-        return processo;
-    }
-
-    private void exigirPapel(Long processoId, PapelProcesso papelExigido, String mensagemErro) {
-        Usuario usuario = getUsuarioAutenticado();
-        ProcessoUsuario vinculo = processoUsuarioRepository
-                .findByProcessoIdAndUsuarioId(processoId, usuario.getId())
-                .orElseThrow(() -> new AcessoNegadoException("Você não tem acesso a este processo"));
-
-        if (vinculo.getPapel() != papelExigido) {
-            throw new AcessoNegadoException(mensagemErro);
-        }
     }
 }

@@ -6,7 +6,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface PrazoRepository extends JpaRepository<Prazo, Long> {
     Page<Prazo> findByProcessoId(Long processoId, Pageable pageable);
+    List<Prazo> findByProcessoId(Long processoId);
 }
