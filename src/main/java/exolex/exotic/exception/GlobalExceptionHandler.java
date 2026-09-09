@@ -117,4 +117,9 @@ public class GlobalExceptionHandler {
             ClientePossuiProcessosException ex, WebRequest request) {
         return construirResposta(HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request);
     }
+    @ExceptionHandler(ArquivoInvalidoException.class)
+    public ResponseEntity<ErroResponse> handlerArquivoInvalido(
+            ArquivoInvalidoException ex, WebRequest request) {
+        return construirResposta(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), request);
+    }
 }

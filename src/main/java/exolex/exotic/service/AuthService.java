@@ -29,7 +29,7 @@ public class AuthService {
         }
 
         String token = jwtService.gerarToken(usuario.getEmail());
-        return new LoginResponseDTO(usuario.getId(), token, usuario.getNome());
+        return new LoginResponseDTO(usuario.getId(), token, usuario.getNome(), usuario.getFotoUrl());
     }
 
     public LoginResponseDTO cadastrar(CadastroRequestDTO dto) {
@@ -45,6 +45,6 @@ public class AuthService {
         usuarioRepository.save(usuario);
 
         String token = jwtService.gerarToken(usuario.getEmail());
-        return new LoginResponseDTO(usuario.getId(), token, usuario.getNome());
+        return new LoginResponseDTO(usuario.getId(), token, usuario.getNome(), usuario.getFotoUrl());
     }
 }

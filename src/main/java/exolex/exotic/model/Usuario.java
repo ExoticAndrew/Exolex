@@ -22,4 +22,7 @@ public class Usuario {
 
     @Column(nullable = false)
     private String senha;
+
+    @Column(name = "foto_url")
+    private String fotoUrl;
 }
