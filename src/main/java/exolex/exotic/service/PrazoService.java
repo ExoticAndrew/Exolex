@@ -119,7 +119,7 @@ public class PrazoService {
         prazoRepository.save(prazo);
 
         if (!camposAlterados.isEmpty()) {
-            publicarAtualizacao(prazo, camposAlterados, usuarioAtual);
+            publicarAtualizacao(prazo, camposAlterados, usuarioAtual.getId(), usuarioAtual.getNome());
         }
 
         return prazoMapper.toResponseDTO(prazo);
@@ -135,10 +135,21 @@ public class PrazoService {
         if (!Objects.equals(statusAntigo, dto.status())) {
             prazo.setStatus(dto.status());
             prazoRepository.save(prazo);
-            publicarAtualizacao(prazo, List.of("status"), usuarioAtual);
+            publicarAtualizacao(prazo, List.of("status"), usuarioAtual.getId(), usuarioAtual.getNome());
         }
 
         return prazoMapper.toResponseDTO(prazo);
+    }
+
+    public void atualizarStatusPorSistema(Long processoId, Long prazoId, AtualizarStatusPrazoDTO dto) {
+        Prazo prazo = buscarPrazoDoProcesso(processoId, prazoId);
+        StatusPrazo statusAntigo = prazo.getStatus();
+
+        if (!Objects.equals(statusAntigo, dto.status())) {
+            prazo.setStatus(dto.status());
+            prazoRepository.save(prazo);
+            publicarAtualizacao(prazo, List.of("status"), null, "Sistema (vencimento automático)");
+        }
     }
 
     public void deletar(Long processoId, Long prazoId) {
@@ -147,7 +158,7 @@ public class PrazoService {
         prazoRepository.delete(prazo);
     }
 
-    private void publicarAtualizacao(Prazo prazo, List<String> camposAlterados, Usuario usuarioAtual) {
+    private void publicarAtualizacao(Prazo prazo, List<String> camposAlterados, Long autorId, String autorNome) {
         prazoEventProducer.publicarPrazoAtualizado(new PrazoAtualizadoEvent(
                 prazo.getId(),
                 prazo.getProcesso().getId(),
@@ -156,8 +167,8 @@ public class PrazoService {
                 prazo.getDescricao(),
                 prazo.getDataVencimento(),
                 prazo.getStatus(),
-                usuarioAtual.getId(),
-                usuarioAtual.getNome()
+                autorId,
+                autorNome
         ));
     }
 
